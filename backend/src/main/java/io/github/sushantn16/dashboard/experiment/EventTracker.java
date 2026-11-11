@@ -44,7 +44,10 @@ public class EventTracker {
     /** One result per variant, including variants nobody has seen yet. */
     public synchronized List<VariantResult> results() {
         return Arrays.stream(Variant.values())
-                .map(variant -> VariantResult.of(variant, viewers.get(variant).size(), clickers.get(variant).size()))
+                .map(variant -> VariantResult.of(
+                        variant,
+                        viewers.get(variant).size(),
+                        clickers.get(variant).size()))
                 .toList();
     }
 }

@@ -13,9 +13,8 @@ class EventTrackerTest {
 
     @Test
     void reportsBothVariantsBeforeAnyoneVisits() {
-        assertThat(tracker.results()).containsExactly(
-                new VariantResult(Variant.A, 0, 0, 0),
-                new VariantResult(Variant.B, 0, 0, 0));
+        assertThat(tracker.results())
+                .containsExactly(new VariantResult(Variant.A, 0, 0, 0), new VariantResult(Variant.B, 0, 0, 0));
     }
 
     @Test
@@ -62,9 +61,8 @@ class EventTrackerTest {
         tracker.recordView("visitor-2", Variant.B);
         tracker.recordClick("visitor-2", Variant.B);
 
-        assertThat(tracker.results()).containsExactly(
-                new VariantResult(Variant.A, 1, 0, 0),
-                new VariantResult(Variant.B, 1, 1, 1.0));
+        assertThat(tracker.results())
+                .containsExactly(new VariantResult(Variant.A, 1, 0, 0), new VariantResult(Variant.B, 1, 1, 1.0));
     }
 
     @Test
@@ -86,6 +84,9 @@ class EventTrackerTest {
     }
 
     private VariantResult result(Variant variant) {
-        return tracker.results().stream().filter(r -> r.variant() == variant).findFirst().orElseThrow();
+        return tracker.results().stream()
+                .filter(r -> r.variant() == variant)
+                .findFirst()
+                .orElseThrow();
     }
 }

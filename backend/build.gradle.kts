@@ -2,6 +2,7 @@ plugins {
 	java
 	id("org.springframework.boot") version "4.1.2"
 	id("io.spring.dependency-management") version "1.1.7"
+	id("com.diffplug.spotless") version "8.11.0"
 }
 
 group = "io.github.sushantn16"
@@ -26,4 +27,12 @@ dependencies {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+}
+
+// ./gradlew spotlessApply formats the code; ./gradlew check (and build) fails if it isn't formatted.
+spotless {
+	java {
+		palantirJavaFormat("2.103.0")
+		removeUnusedImports()
+	}
 }

@@ -26,14 +26,17 @@ class ExperimentServiceTest {
 
         assertThat(experiment.record("visitor-1", EventType.CLICK, other)).isFalse();
 
-        assertThat(experiment.results()).allSatisfy(result -> assertThat(result.saw()).isZero());
+        assertThat(experiment.results())
+                .allSatisfy(result -> assertThat(result.saw()).isZero());
     }
 
     @Test
     void doesNotCountAnEventFromAnUnknownVisitor() {
-        assertThat(experiment.record("never-assigned", EventType.VIEW, Variant.A)).isFalse();
+        assertThat(experiment.record("never-assigned", EventType.VIEW, Variant.A))
+                .isFalse();
         assertThat(experiment.record(null, EventType.VIEW, Variant.A)).isFalse();
 
-        assertThat(experiment.results()).allSatisfy(result -> assertThat(result.saw()).isZero());
+        assertThat(experiment.results())
+                .allSatisfy(result -> assertThat(result.saw()).isZero());
     }
 }

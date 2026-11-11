@@ -122,7 +122,8 @@ class ExperimentControllerTest {
             results.andExpect(jsonPath("$.variants[%d].variant", i).value(variant.name()))
                     .andExpect(jsonPath("$.variants[%d].saw", i).value(saw[i]))
                     .andExpect(jsonPath("$.variants[%d].clicked", i).value(clicked[i]))
-                    .andExpect(jsonPath("$.variants[%d].clickRate", i).value(saw[i] == 0 ? 0.0 : (double) clicked[i] / saw[i]));
+                    .andExpect(jsonPath("$.variants[%d].clickRate", i)
+                            .value(saw[i] == 0 ? 0.0 : (double) clicked[i] / saw[i]));
         }
     }
 
@@ -166,7 +167,9 @@ class ExperimentControllerTest {
     }
 
     private ResultActions postEvent(Cookie visitor, String body) throws Exception {
-        var request = post("/api/experiment/events").contentType(MediaType.APPLICATION_JSON).content(body);
+        var request = post("/api/experiment/events")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body);
         if (visitor != null) {
             request.cookie(visitor);
         }
@@ -178,6 +181,7 @@ class ExperimentControllerTest {
     }
 
     private Variant variantOf(MvcResult result) throws Exception {
-        return json.readValue(result.getResponse().getContentAsString(), Assignment.class).variant();
+        return json.readValue(result.getResponse().getContentAsString(), Assignment.class)
+                .variant();
     }
 }
