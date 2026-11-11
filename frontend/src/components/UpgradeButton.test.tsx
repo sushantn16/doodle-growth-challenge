@@ -74,7 +74,7 @@ describe('UpgradeButton', () => {
     renderButton(Promise.reject(new Error('backend down')))
 
     // The placeholder stays, so the header keeps its height.
-    await waitFor(() => expect(document.querySelector('.upgrade-placeholder')).toBeInTheDocument())
+    await waitFor(() => expect(document.querySelector('[aria-hidden="true"]')).toBeInTheDocument())
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
     expect(sentEvents(fetchMock)).toEqual([])

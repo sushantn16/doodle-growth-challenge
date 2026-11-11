@@ -1,0 +1,31 @@
+.list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.poll {
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.date {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.message {
+  color: var(--text-muted);
+}

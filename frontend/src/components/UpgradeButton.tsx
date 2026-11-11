@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { sendEvent, type Variant } from '../api/experiment'
 import { useAsync } from '../hooks/useAsync'
+import styles from './UpgradeButton.module.css'
 
 /** Version B changes only the text. Everything else about the button stays the same. */
 const LABELS: Record<Variant, string> = {
@@ -31,16 +32,16 @@ export function UpgradeButton({ variantRequest }: { variantRequest: Promise<Vari
   }
 
   return (
-    <div className="upgrade">
+    <div className={styles.upgrade}>
       {/* Reserves the button's height while loading, so nothing on the page jumps. */}
       {variant ? (
-        <button type="button" className="button-primary" onClick={handleClick}>
+        <button type="button" className={styles.button} onClick={handleClick}>
           {LABELS[variant]}
         </button>
       ) : (
-        <span className="upgrade-placeholder" aria-hidden="true" />
+        <span className={styles.placeholder} aria-hidden="true" />
       )}
-      <p className="upgrade-status" role="status">
+      <p className={styles.status} role="status">
         {clicked ? 'Plans are coming soon.' : ''}
       </p>
     </div>

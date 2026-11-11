@@ -1,0 +1,27 @@
+.page {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+@media (min-width: 40rem) {
+  .page {
+    padding: 2.5rem;
+  }
+}
+
+/* Title on the left, Upgrade button on the right, above the poll list. */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem; /* leaves room for the message under the button */
+}
+
+.title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}

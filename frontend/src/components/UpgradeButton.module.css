@@ -1,0 +1,53 @@
+.upgrade {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Same height as the button, so nothing moves when it appears. */
+.placeholder {
+  display: block;
+  height: 2.75rem;
+}
+
+/* Below the button, out of the layout flow, so the message doesn't move anything. */
+.status {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem; /* 44 px, a comfortable touch target */
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: 6px;
+  background: var(--primary);
+  color: #fff;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.button:hover {
+  background: var(--primary-hover);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+}

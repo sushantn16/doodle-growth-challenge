@@ -1,0 +1,28 @@
+/* Colours, type and button style follow doodle.com. Inter is used only if it's installed, so the
+   page downloads no web font. Component styles live next to each component, as CSS Modules. */
+:root {
+  --background: #f8f8f8;
+  --surface: #fff;
+  --text: #0a0a0a;
+  --text-muted: #6b6b6b; /* 5:1 on the page background, above the 4.5:1 WCAG AA minimum */
+  --border: #e5e5e5;
+  --primary: #000;
+  --primary-hover: #525252;
+  --radius: 0.625rem;
+
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--background);
+  -webkit-text-size-adjust: 100%;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
