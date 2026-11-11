@@ -4,7 +4,7 @@
   --background: #f8f8f8;
   --surface: #fff;
   --text: #0a0a0a;
-  --text-muted: #737373;
+  --text-muted: #6b6b6b; /* 5:1 on the page background, above the 4.5:1 WCAG AA minimum */
   --border: #e5e5e5;
   --primary: #000;
   --primary-hover: #525252;
