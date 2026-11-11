@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchVariant, sendEvent, type Variant } from './api'
+import { sendEvent, type Variant } from './api'
 
 /** Version B changes only the text. Everything else about the button stays the same. */
 const LABELS: Record<Variant, string> = {
@@ -9,33 +9,36 @@ const LABELS: Record<Variant, string> = {
 
 type State = { status: 'loading' } | { status: 'ready'; variant: Variant } | { status: 'failed' }
 
-export function UpgradeButton() {
+/** `variant` is the pending request for the visitor's variant. It is started once, in main.tsx. */
+export function UpgradeButton({ variant: variantRequest }: { variant: Promise<Variant> }) {
   const [state, setState] = useState<State>({ status: 'loading' })
   const [clicked, setClicked] = useState(false)
 
   useEffect(() => {
     let cancelled = false
-    fetchVariant()
+    variantRequest
       .then((variant) => !cancelled && setState({ status: 'ready', variant }))
       // Without a variant, show no button. Falling back to A would put extra visitors in A.
       .catch(() => !cancelled && setState({ status: 'failed' }))
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [variantRequest])
 
   const variant = state.status === 'ready' ? state.variant : null
 
   // "Saw" means the button is on the screen. The backend counts each visitor once,
-  // so a reload, or React running this effect twice in development, is harmless.
+  // so a reload, or StrictMode running this effect twice in development, is harmless.
   useEffect(() => {
     if (variant) {
-      sendEvent('VIEW')
+      sendEvent('VIEW', variant)
     }
   }, [variant])
 
   function handleClick() {
-    sendEvent('CLICK')
+    if (variant) {
+      sendEvent('CLICK', variant)
+    }
     setClicked(true)
   }
 

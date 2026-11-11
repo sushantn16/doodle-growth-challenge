@@ -22,9 +22,15 @@ export function mockFetch(routes: Record<string, Route>) {
   return fetchMock
 }
 
-/** The event types sent to the backend so far, in order. */
+/** The events sent to the backend so far, in order, e.g. "VIEW B". */
 export function sentEvents(fetchMock: ReturnType<typeof mockFetch>): string[] {
   return fetchMock.mock.calls
     .filter(([url]) => url === '/api/experiment/events')
-    .map(([, init]) => JSON.parse(String(init?.body)).type)
+    .map(([, init]) => JSON.parse(String(init?.body)))
+    .map(({ type, variant }) => `${type} ${variant}`)
+}
+
+/** How many requests went to `url`. */
+export function requestsTo(fetchMock: ReturnType<typeof mockFetch>, url: string): number {
+  return fetchMock.mock.calls.filter(([requested]) => requested === url).length
 }
