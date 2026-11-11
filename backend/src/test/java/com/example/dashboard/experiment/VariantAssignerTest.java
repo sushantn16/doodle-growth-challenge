@@ -2,7 +2,14 @@ package com.example.dashboard.experiment;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.junit.jupiter.api.Test;
 
 class VariantAssignerTest {
@@ -36,5 +43,23 @@ class VariantAssignerTest {
         assertThat(assigner.find("visitor-1")).isEmpty();
         Variant assigned = assigner.assign("visitor-1");
         assertThat(assigner.find("visitor-1")).contains(assigned);
+    }
+
+    @Test
+    void givesSimultaneousRequestsFromOneVisitorTheSameVariant() throws Exception {
+        try (ExecutorService pool = Executors.newFixedThreadPool(16)) {
+            for (int round = 0; round < 200; round++) {
+                String visitor = "visitor-" + round;
+                List<Future<Variant>> answers = new ArrayList<>();
+                for (int i = 0; i < 16; i++) {
+                    answers.add(pool.submit(() -> assigner.assign(visitor)));
+                }
+                Set<Variant> distinct = new HashSet<>();
+                for (Future<Variant> answer : answers) {
+                    distinct.add(answer.get());
+                }
+                assertThat(distinct).hasSize(1);
+            }
+        }
     }
 }

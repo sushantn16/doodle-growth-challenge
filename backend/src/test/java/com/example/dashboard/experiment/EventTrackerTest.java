@@ -3,6 +3,8 @@ package com.example.dashboard.experiment;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.junit.jupiter.api.Test;
 
 class EventTrackerTest {
@@ -63,6 +65,24 @@ class EventTrackerTest {
         assertThat(tracker.results()).containsExactly(
                 new VariantResult(Variant.A, 1, 0, 0),
                 new VariantResult(Variant.B, 1, 1, 1.0));
+    }
+
+    @Test
+    void countsExactlyWhenEventsArriveAtTheSameTime() {
+        try (ExecutorService pool = Executors.newFixedThreadPool(16)) {
+            for (int i = 0; i < 1_000; i++) {
+                String visitor = "visitor-" + i;
+                for (int view = 0; view < 3; view++) {
+                    pool.submit(() -> tracker.recordView(visitor, Variant.A));
+                }
+                if (i % 2 == 0) {
+                    pool.submit(() -> tracker.recordClick(visitor, Variant.A));
+                    pool.submit(() -> tracker.recordClick(visitor, Variant.A));
+                }
+            }
+        } // close() waits for every task
+
+        assertThat(result(Variant.A)).isEqualTo(new VariantResult(Variant.A, 1_000, 500, 0.5));
     }
 
     private VariantResult result(Variant variant) {
