@@ -1,10 +1,141 @@
+/* Colours, type and button style follow doodle.com. Inter is used only if it's installed, so the
+   page downloads no web font. */
 :root {
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --background: #f8f8f8;
+  --surface: #fff;
+  --text: #0a0a0a;
+  --text-muted: #737373;
+  --border: #e5e5e5;
+  --primary: #000;
+  --primary-hover: #525252;
+  --radius: 0.625rem;
+
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.5;
-  color: #1a1a1a;
-  background: #fff;
+  color: var(--text);
+  background: var(--background);
+  -webkit-text-size-adjust: 100%;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
+}
+
+.page {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+@media (min-width: 40rem) {
+  .page {
+    padding: 2.5rem;
+  }
+}
+
+/* Title on the left, Upgrade button on the right, above the poll list. */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem; /* leaves room for the message under the button */
+}
+
+.header-title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.upgrade {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.upgrade-placeholder {
+  display: block;
+  height: 2.75rem;
+}
+
+/* Below the button, out of the layout flow, so the message doesn't move anything. */
+.upgrade-status {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.button-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem; /* 44 px, a comfortable touch target */
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: 6px;
+  background: var(--primary);
+  color: #fff;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.button-primary:hover {
+  background: var(--primary-hover);
+}
+
+.button-primary:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.poll-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.poll {
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.poll-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.poll-date {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.message {
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button-primary {
+    transition: none;
+  }
 }
