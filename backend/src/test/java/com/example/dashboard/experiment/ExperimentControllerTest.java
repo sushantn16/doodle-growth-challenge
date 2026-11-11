@@ -2,6 +2,7 @@ package com.example.dashboard.experiment;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -13,9 +14,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 import tools.jackson.databind.json.JsonMapper;
 
 @SpringBootTest
@@ -42,7 +45,7 @@ class ExperimentControllerTest {
     @Test
     void keepsAReturningVisitorInTheSameVariant() throws Exception {
         MvcResult first = mockMvc.perform(get("/api/experiment")).andReturn();
-        Cookie visitor = first.getResponse().getCookie(ExperimentController.VISITOR_COOKIE);
+        Cookie visitor = visitorCookie(first);
         Variant variant = variantOf(first);
 
         for (int i = 0; i < 20; i++) {
@@ -71,6 +74,85 @@ class ExperimentControllerTest {
         }
         // One standard deviation is sqrt(2_000 * 0.25) ≈ 22, so this allows about 4 of them.
         assertThat(inA).isBetween(910, 1_090);
+    }
+
+    @Test
+    void reportsZeroForBothVariantsBeforeAnyoneVisits() throws Exception {
+        mockMvc.perform(get("/api/experiment/results"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.variants[0].variant").value("A"))
+                .andExpect(jsonPath("$.variants[0].saw").value(0))
+                .andExpect(jsonPath("$.variants[0].clicked").value(0))
+                .andExpect(jsonPath("$.variants[0].clickRate").value(0.0))
+                .andExpect(jsonPath("$.variants[1].variant").value("B"))
+                .andExpect(jsonPath("$.variants[1].saw").value(0));
+    }
+
+    @Test
+    void countsEachVisitorOnceInTheirOwnVariant() throws Exception {
+        // Three visitors load the page. The first reloads twice; the second clicks three times.
+        MvcResult[] visits = {
+            mockMvc.perform(get("/api/experiment")).andReturn(),
+            mockMvc.perform(get("/api/experiment")).andReturn(),
+            mockMvc.perform(get("/api/experiment")).andReturn(),
+        };
+        for (MvcResult visit : visits) {
+            send(visit, "VIEW");
+        }
+        send(visits[0], "VIEW");
+        send(visits[0], "VIEW");
+        send(visits[1], "CLICK");
+        send(visits[1], "CLICK");
+        send(visits[1], "CLICK");
+
+        // Which variant each visitor landed in is random, so work out the expected counts from it.
+        int[] saw = new int[2];
+        int[] clicked = new int[2];
+        for (MvcResult visit : visits) {
+            saw[variantOf(visit).ordinal()]++;
+        }
+        clicked[variantOf(visits[1]).ordinal()]++;
+
+        var results = mockMvc.perform(get("/api/experiment/results")).andExpect(status().isOk());
+        for (Variant variant : Variant.values()) {
+            int i = variant.ordinal();
+            results.andExpect(jsonPath("$.variants[%d].variant", i).value(variant.name()))
+                    .andExpect(jsonPath("$.variants[%d].saw", i).value(saw[i]))
+                    .andExpect(jsonPath("$.variants[%d].clicked", i).value(clicked[i]))
+                    .andExpect(jsonPath("$.variants[%d].clickRate", i).value(saw[i] == 0 ? 0.0 : (double) clicked[i] / saw[i]));
+        }
+    }
+
+    @Test
+    void rejectsAnEventFromAVisitorWithoutAnAssignment() throws Exception {
+        postEvent(null, "{\"type\":\"CLICK\"}").andExpect(status().isConflict());
+
+        Cookie unknown = new Cookie(ExperimentController.VISITOR_COOKIE, "1b4e28ba-2fa1-11d2-883f-0016d3cca427");
+        postEvent(unknown, "{\"type\":\"VIEW\"}").andExpect(status().isConflict());
+    }
+
+    @Test
+    void rejectsAnEventWithoutAKnownType() throws Exception {
+        Cookie visitor = visitorCookie(mockMvc.perform(get("/api/experiment")).andReturn());
+
+        postEvent(visitor, "{}").andExpect(status().isBadRequest());
+        postEvent(visitor, "{\"type\":\"HOVER\"}").andExpect(status().isBadRequest());
+    }
+
+    private void send(MvcResult visit, String type) throws Exception {
+        postEvent(visitorCookie(visit), "{\"type\":\"" + type + "\"}").andExpect(status().isNoContent());
+    }
+
+    private ResultActions postEvent(Cookie visitor, String body) throws Exception {
+        var request = post("/api/experiment/events").contentType(MediaType.APPLICATION_JSON).content(body);
+        if (visitor != null) {
+            request.cookie(visitor);
+        }
+        return mockMvc.perform(request);
+    }
+
+    private static Cookie visitorCookie(MvcResult visit) {
+        return visit.getResponse().getCookie(ExperimentController.VISITOR_COOKIE);
     }
 
     private Variant variantOf(MvcResult result) throws Exception {
