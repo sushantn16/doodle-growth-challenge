@@ -37,11 +37,11 @@ class ExperimentControllerTest {
         mockMvc.perform(get("/api/experiment"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.variant").isString())
-                .andExpect(cookie().exists(ExperimentController.VISITOR_COOKIE))
-                .andExpect(cookie().httpOnly(ExperimentController.VISITOR_COOKIE, true))
-                .andExpect(cookie().sameSite(ExperimentController.VISITOR_COOKIE, "Lax"))
-                .andExpect(cookie().path(ExperimentController.VISITOR_COOKIE, "/"))
-                .andExpect(cookie().maxAge(ExperimentController.VISITOR_COOKIE, 365 * 24 * 60 * 60))
+                .andExpect(cookie().exists(VisitorCookie.NAME))
+                .andExpect(cookie().httpOnly(VisitorCookie.NAME, true))
+                .andExpect(cookie().sameSite(VisitorCookie.NAME, "Lax"))
+                .andExpect(cookie().path(VisitorCookie.NAME, "/"))
+                .andExpect(cookie().maxAge(VisitorCookie.NAME, 365 * 24 * 60 * 60))
                 .andExpect(header().string("Cache-Control", "no-store"));
     }
 
@@ -53,7 +53,7 @@ class ExperimentControllerTest {
 
         for (int i = 0; i < 20; i++) {
             MvcResult again = mockMvc.perform(get("/api/experiment").cookie(visitor))
-                    .andExpect(cookie().doesNotExist(ExperimentController.VISITOR_COOKIE))
+                    .andExpect(cookie().doesNotExist(VisitorCookie.NAME))
                     .andReturn();
             assertThat(variantOf(again)).isEqualTo(variant);
         }
@@ -61,9 +61,9 @@ class ExperimentControllerTest {
 
     @Test
     void replacesAVisitorIdTheServerCouldNotHaveIssued() throws Exception {
-        mockMvc.perform(get("/api/experiment").cookie(new Cookie(ExperimentController.VISITOR_COOKIE, "not-a-uuid")))
+        mockMvc.perform(get("/api/experiment").cookie(new Cookie(VisitorCookie.NAME, "not-a-uuid")))
                 .andExpect(status().isOk())
-                .andExpect(cookie().exists(ExperimentController.VISITOR_COOKIE));
+                .andExpect(cookie().exists(VisitorCookie.NAME));
     }
 
     @Test
@@ -130,7 +130,7 @@ class ExperimentControllerTest {
     void rejectsAnEventFromAVisitorWithoutAnAssignment() throws Exception {
         postEvent(null, body("CLICK", Variant.A)).andExpect(status().isConflict());
 
-        Cookie unknown = new Cookie(ExperimentController.VISITOR_COOKIE, "1b4e28ba-2fa1-11d2-883f-0016d3cca427");
+        Cookie unknown = new Cookie(VisitorCookie.NAME, "1b4e28ba-2fa1-11d2-883f-0016d3cca427");
         postEvent(unknown, body("VIEW", Variant.A)).andExpect(status().isConflict());
     }
 
@@ -174,7 +174,7 @@ class ExperimentControllerTest {
     }
 
     private static Cookie visitorCookie(MvcResult visit) {
-        return visit.getResponse().getCookie(ExperimentController.VISITOR_COOKIE);
+        return visit.getResponse().getCookie(VisitorCookie.NAME);
     }
 
     private Variant variantOf(MvcResult result) throws Exception {
