@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { sendEvent, type Variant } from '../api/experiment'
+import { useAsync } from '../hooks/useAsync'
 
 /** Version B changes only the text. Everything else about the button stays the same. */
 const LABELS: Record<Variant, string> = {
@@ -7,25 +8,12 @@ const LABELS: Record<Variant, string> = {
   B: 'Remove ads',
 }
 
-type State = { status: 'loading' } | { status: 'ready'; variant: Variant } | { status: 'failed' }
-
-/** `variant` is the pending request for the visitor's variant. It is started once, in main.tsx. */
-export function UpgradeButton({ variant: variantRequest }: { variant: Promise<Variant> }) {
-  const [state, setState] = useState<State>({ status: 'loading' })
+/** `variantRequest` is the pending request for the visitor's version, started once in main.tsx. */
+export function UpgradeButton({ variantRequest }: { variantRequest: Promise<Variant> }) {
+  const request = useAsync(variantRequest)
+  // Without a version, show no button. Falling back to A would put extra visitors in A.
+  const variant = request.status === 'ready' ? request.value : null
   const [clicked, setClicked] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    variantRequest
-      .then((variant) => !cancelled && setState({ status: 'ready', variant }))
-      // Without a variant, show no button. Falling back to A would put extra visitors in A.
-      .catch(() => !cancelled && setState({ status: 'failed' }))
-    return () => {
-      cancelled = true
-    }
-  }, [variantRequest])
-
-  const variant = state.status === 'ready' ? state.variant : null
 
   // "Saw" means the button is on the screen. The backend counts each visitor once,
   // so a reload, or StrictMode running this effect twice in development, is harmless.

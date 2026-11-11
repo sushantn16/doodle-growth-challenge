@@ -4,6 +4,7 @@ import { StrictMode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { fetchVariant } from './api/experiment'
+import { fetchPolls } from './api/polls'
 import { mockFetch, requestsTo, sentEvents } from './test/mockFetch'
 
 afterEach(() => {
@@ -20,10 +21,10 @@ describe('App', () => {
       '/api/polls': { body: [{ id: 'p1', title: 'Team lunch', createdAt: '2017-01-27T12:52:49.056Z' }] },
     })
 
-    // Started the same way main.tsx starts it.
+    // Started the same way main.tsx starts them.
     render(
       <StrictMode>
-        <App variant={fetchVariant()} />
+        <App variantRequest={fetchVariant()} pollsRequest={fetchPolls()} />
       </StrictMode>,
     )
     await userEvent.click(await screen.findByRole('button', { name: 'Remove ads' }))
@@ -41,7 +42,7 @@ describe('App', () => {
       '/api/polls': { body: [] },
     })
 
-    render(<App variant={fetchVariant()} />)
+    render(<App variantRequest={fetchVariant()} pollsRequest={fetchPolls()} />)
 
     const button = await screen.findByRole('button', { name: 'Upgrade' })
     expect(screen.getByRole('banner')).toContainElement(button)

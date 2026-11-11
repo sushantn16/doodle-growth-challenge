@@ -1,41 +1,30 @@
-import { useEffect, useState } from 'react'
-import { fetchPolls, type Poll } from '../api/polls'
+import type { Poll } from '../api/polls'
+import { useAsync } from '../hooks/useAsync'
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' })
 
-type State = { status: 'loading' } | { status: 'ready'; polls: Poll[] } | { status: 'failed' }
+/** `pollsRequest` is the pending request for the polls, started once in main.tsx. */
+export function PollList({ pollsRequest }: { pollsRequest: Promise<Poll[]> }) {
+  const request = useAsync(pollsRequest)
 
-export function PollList() {
-  const [state, setState] = useState<State>({ status: 'loading' })
-
-  useEffect(() => {
-    let cancelled = false
-    fetchPolls()
-      .then((polls) => !cancelled && setState({ status: 'ready', polls }))
-      .catch(() => !cancelled && setState({ status: 'failed' }))
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  if (state.status === 'loading') {
+  if (request.status === 'loading') {
     return <p className="message">Loading your polls…</p>
   }
-  if (state.status === 'failed') {
+  if (request.status === 'failed') {
     return (
       <p className="message" role="alert">
         Your polls couldn’t be loaded. Please reload the page.
       </p>
     )
   }
-  if (state.polls.length === 0) {
+  if (request.value.length === 0) {
     return <p className="message">You don’t have any polls yet.</p>
   }
 
   return (
     // The backend already sorts newest first.
     <ol className="poll-list">
-      {state.polls.map((poll) => (
+      {request.value.map((poll) => (
         <li key={poll.id} className="poll">
           {/* Titles come in any language, including right-to-left ones such as Arabic. */}
           <h2 className="poll-title" dir="auto">

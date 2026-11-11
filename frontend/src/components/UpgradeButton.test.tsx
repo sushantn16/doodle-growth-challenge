@@ -16,7 +16,7 @@ afterEach(() => {
 })
 
 function renderButton(variant: Promise<Variant>) {
-  return render(<UpgradeButton variant={variant} />)
+  return render(<UpgradeButton variantRequest={variant} />)
 }
 
 describe('UpgradeButton', () => {
