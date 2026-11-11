@@ -5,7 +5,7 @@ a dashboard that lists polls, with an "Upgrade" button whose two versions are A/
 
 ## Start the app
 
-You need Java 21 and Node 20.19+ (or 22.12+).
+You need Java 21 or newer, and Node 20.19+ (or 22.12+).
 
 ```sh
 # Terminal 1: backend on http://localhost:8080
@@ -26,7 +26,7 @@ Tests: `cd backend && ./gradlew test`, and `cd frontend && npm test`.
 |---|---|
 | `GET /api/polls` | All polls, newest first: `[{id, title, createdAt}]` |
 | `GET /api/experiment` | The visitor's version: `{"variant": "A"}`. A new visitor first gets an id cookie |
-| `POST /api/experiment/events` | `{"type": "VIEW"}` or `{"type": "CLICK"}` for the visitor in the cookie. Returns 204, or 409 if the visitor has no version |
+| `POST /api/experiment/events` | `{"type": "VIEW" or "CLICK", "variant": "A" or "B"}` for the visitor in the cookie. Returns 204; 409 if the visitor has no version or a different one |
 | `GET /api/experiment/results` | `{"variants": [{"variant": "A", "saw": 120, "clicked": 9, "clickRate": 0.075}, …]}` |
 
 - **The server creates the visitor id.** It's a random UUID in an HttpOnly, SameSite=Lax cookie that lasts a year.
@@ -39,9 +39,10 @@ Tests: `cd backend && ./gradlew test`, and `cd frontend && npm test`.
 - **The counting:**
   - The backend keeps a set of visitor ids per version for "saw" and another for "clicked", so a reload or a second click counts once.
   - A click also counts as a view, so "clicked" can never exceed "saw".
-  - Events don't carry a version. The server looks up the visitor's own version, so a client can't count a click for the wrong one.
+  - Each event says which version the browser showed, and the server counts it only if that matches the visitor's assignment. So an event can never land in a version the visitor didn't see, for example when a brand-new visitor opens two tabs at once and the browser keeps only one of the two cookies.
   - With no visitors, the click rate is 0.
 - **The frontend:**
+  - The version is requested once per page load, in `main.tsx`, before React renders. Inside a component, React's StrictMode would send the request twice in development, and two requests without a cookie would create two visitor ids.
   - The button sends VIEW once it's on screen and CLICK when pressed.
   - If the version can't be loaded, no button is shown and nothing is recorded. Falling back to A would quietly add visitors to A and skew the split.
   - The button's space is reserved while it loads, so the page doesn't jump.
@@ -58,7 +59,7 @@ Tests: `cd backend && ./gradlew test`, and `cd frontend && npm test`.
 B changes only the text, from "Upgrade" to **"Remove ads"**.
 
 "Upgrade" tells people what they have to do (pay) but not what they get. "Remove ads" names a concrete benefit that a free user notices on every visit: Doodle's free plan shows ads, and "No ads" is one of the paid plan's features.
-Specific, benefit-led copy usually gets more clicks than a generic label, because people click when they can see what's in it for them.
+My hypothesis is that specific copy that names a benefit gets more clicks than a generic label, because people click when they can see what's in it for them.
 
 The risk is that it's narrower. People who would pay for other features, such as calendar integrations or branding, may not see a reason to click.
 
@@ -66,7 +67,7 @@ The risk is that it's narrower. People who would pay for other features, such as
 
 About **8,200 visitors per version, so roughly 16,400 in total**, who saw the button. The calculation:
 - Assume a 5% click rate for A, and that the smallest lift worth acting on is 20% relative (5% → 6%).
-- A standard two-proportion power calculation, with a 5% false-positive rate (two-sided) and 80% power, gives `n = (1.96 + 0.84)² × (0.05·0.95 + 0.06·0.94) / 0.01² ≈ 8,155` per version.
+- A standard two-proportion power calculation, with a 5% false-positive rate (two-sided) and 80% power, gives `n = (1.96 + 0.8416)² × (0.05·0.95 + 0.06·0.94) / 0.01² ≈ 8,155` per version.
 
 The number depends heavily on the assumptions: detecting 5% → 5.5% would need about 31,000 per version. In practice I'd use the real baseline click rate.
 
@@ -78,14 +79,13 @@ I'd also:
 ### 3. The split should be close to 50/50. What could make it come out different, and how would you notice?
 
 What could skew it:
-- **Bots or browsers that don't keep cookies.** Every page load looks like a new visitor, so these can land in both versions many times.
-- **Events that get lost in only one version.** For example, B's button might fail on some browser, or an ad blocker might block requests from a page whose button says "Remove ads".
+- **Something that differs between the versions.** For example, B's button might fail to render on some browser, so those visitors never send a "saw" event. Only an asymmetry like this moves the ratio; problems that hit both versions equally don't.
 - **Assignments that reset or get cached:** a server restart re-randomizes every visitor (this app keeps assignments in memory), and a CDN caching the assignment response would give many visitors the same version. The endpoint sends `Cache-Control: no-store`.
 - **Plain chance.** It's small at this size: about ±1% at 10,000 visitors.
 
-How I'd notice: run a chi-square test of the "saw" counts against 50/50 (a sample ratio mismatch check), and alert below p < 0.001.
-- For example, 5,150 vs 4,850 out of 10,000 gives p ≈ 0.003. That's already more off than chance should produce, so I'd investigate before reading the click rates.
-- I'd also compare assigned visitors to visitors who saw the button, per version: a gap in only one version points at a tracking bug.
+Bots that don't keep cookies are filtered out by design: their events arrive without a visitor id and get a 409, so they're never counted. Bots that do keep cookies are split 50/50 like anyone else. They don't move the ratio, but they dilute the click rate.
+
+How I'd notice: run a chi-square test of the "saw" counts against 50/50 (a sample ratio mismatch check), and alert below p < 0.001. For example, out of 10,000 visitors, 5,150 vs 4,850 gives p ≈ 0.003, which is worth a look, and 5,200 vs 4,800 gives p ≈ 0.00006, which means something is broken. Either way, I'd find the cause before trusting the click rates.
 
 ### 4. A click on "Upgrade" is not a subscription. What would you measure to know whether version B brings more paid subscriptions?
 
@@ -104,11 +104,14 @@ Subscriptions are much rarer than clicks, so this needs many more visitors, or a
 - **Persistence:** everything is in memory, as the brief allows. Assignments and events are lost on restart.
 - **Rendering the version on the server.** With Next.js, the server could render the button directly, so it wouldn't appear only after the page loads. I kept a client-rendered Vite app, which suits a single screen, and reserve the button's space instead.
 - **Statistics in the results endpoint:** a confidence interval or p-value for the difference, and the sample ratio mismatch check from question 3. Today it returns raw counts and rates.
+- **Events lost after a restart.** If the server restarts while a page is open, that page's events get a 409 and are dropped silently; the next page load gets a new version.
+- **A count of assigned visitors per version,** to compare with "saw" and catch tracking bugs that hit only one version.
+- **Limits on memory:** every request without a cookie creates a new visitor, so a client could grow the in-memory map without limit. Production would need rate limiting, or assignment by hashing the visitor id instead of storing it.
 - **Bot filtering and a production setup:**
   - a `Secure` cookie flag over HTTPS
   - serving the built frontend from Spring
   - rate limiting the events endpoint.
-- **End-to-end browser tests.** I checked the flow by hand in a desktop and a mobile viewport, with the keyboard. The automated tests are unit and API tests.
+- **End-to-end browser tests in the repo.** The flow was checked in a real browser during development: desktop and phone-sized viewports, keyboard only, and 40 new visitors in a row to confirm each one sends a single version request and that the counts match. The tests in the repo are unit, component and API tests.
 
 ## Time and tools
 
