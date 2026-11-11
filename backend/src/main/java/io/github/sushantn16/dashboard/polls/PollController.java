@@ -1,4 +1,4 @@
-package com.example.dashboard.polls;
+package io.github.sushantn16.dashboard.polls;
 
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;

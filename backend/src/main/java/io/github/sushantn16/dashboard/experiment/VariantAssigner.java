@@ -1,4 +1,4 @@
-package com.example.dashboard.experiment;
+package io.github.sushantn16.dashboard.experiment;
 
 import java.util.Map;
 import java.util.Optional;

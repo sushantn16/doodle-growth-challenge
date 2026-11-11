@@ -4,7 +4,7 @@ plugins {
 	id("io.spring.dependency-management") version "1.1.7"
 }
 
-group = "com.example"
+group = "io.github.sushantn16"
 version = "0.0.1-SNAPSHOT"
 
 // Compile for Java 21 with whichever JDK runs Gradle, as long as it's 21 or newer. A toolchain

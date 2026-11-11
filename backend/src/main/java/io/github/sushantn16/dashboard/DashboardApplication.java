@@ -1,4 +1,4 @@
-package com.example.dashboard;
+package io.github.sushantn16.dashboard;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

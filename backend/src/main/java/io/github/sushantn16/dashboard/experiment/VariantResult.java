@@ -1,4 +1,4 @@
-package com.example.dashboard.experiment;
+package io.github.sushantn16.dashboard.experiment;
 
 /**
  * The result for one variant. Both counts are of unique visitors, so reloads and repeated clicks

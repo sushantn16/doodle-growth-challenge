@@ -1,4 +1,4 @@
-package com.example.dashboard.experiment;
+package io.github.sushantn16.dashboard.experiment;
 
 import java.util.Random;
 import java.util.random.RandomGenerator;

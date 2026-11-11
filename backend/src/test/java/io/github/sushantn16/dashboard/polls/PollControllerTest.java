@@ -1,4 +1,4 @@
-package com.example.dashboard.polls;
+package io.github.sushantn16.dashboard.polls;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;

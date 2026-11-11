@@ -1,4 +1,4 @@
-package com.example.dashboard.experiment;
+package io.github.sushantn16.dashboard.experiment;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;

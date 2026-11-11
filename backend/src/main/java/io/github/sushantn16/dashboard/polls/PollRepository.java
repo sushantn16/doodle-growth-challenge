@@ -1,4 +1,4 @@
-package com.example.dashboard.polls;
+package io.github.sushantn16.dashboard.polls;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.io.IOException;
