@@ -15,41 +15,80 @@ cd backend && ./gradlew bootRun
 cd frontend && npm install && npm run dev
 ```
 
-Open http://localhost:5173. To see the results, open http://localhost:5173/api/experiment/results. To land
-in a version again as a new visitor, use a private window or delete the `visitor_id` cookie.
+- **The dashboard:** http://localhost:5173
+- **The results:** http://localhost:5173/api/experiment/results
+- **To be a new visitor again:** use a private window, or delete the `visitor_id` cookie.
 
-Tests: `cd backend && ./gradlew test`, and `cd frontend && npm test`.
+| | Backend (`cd backend`) | Frontend (`cd frontend`) |
+|---|---|---|
+| Tests | `./gradlew test` | `npm test` |
+| Format | `./gradlew spotlessApply` | `npm run format` |
+| Everything CI would check | `./gradlew check` (tests and formatting) | `npm run build && npm test && npm run lint && npm run format:check` |
 
-## How it works
+## API
 
 | Endpoint | What it does |
 |---|---|
 | `GET /api/polls` | All polls, newest first: `[{id, title, createdAt}]` |
 | `GET /api/experiment` | The visitor's version: `{"variant": "A"}`. A new visitor first gets an id cookie |
-| `POST /api/experiment/events` | `{"type": "VIEW" or "CLICK", "variant": "A" or "B"}` for the visitor in the cookie. Returns 204; 409 if the visitor has no version or a different one |
+| `POST /api/experiment/events` | `{"type": "VIEW" or "CLICK", "variant": "A" or "B"}` for the visitor in the cookie. 204 if counted; 409 if the visitor has no version or a different one; 400 if invalid |
 | `GET /api/experiment/results` | `{"variants": [{"variant": "A", "saw": 120, "clicked": 9, "clickRate": 0.075}, …]}` |
 
-- **The server creates the visitor id.** It's a random UUID in an HttpOnly, SameSite=Lax cookie that lasts a year.
-  - The browser never stores or sends the id itself, so page scripts can't read or change it.
-  - It avoids `crypto.randomUUID()`, which doesn't exist on plain-HTTP pages, for example when testing on a phone over the local network.
+## Project structure
+
+```
+backend/src/main/java/io/github/sushantn16/dashboard/
+├── polls/
+│   ├── PollRepository       loads polls.json once, sorted newest first
+│   └── PollController       GET /api/polls
+└── experiment/
+    ├── ExperimentController HTTP only: maps requests to ExperimentService
+    ├── ExperimentService    the rules: who sees which version, which events count
+    ├── VariantAssigner      the 50/50 split, remembered per visitor
+    ├── EventTracker         who saw and who clicked, per version
+    └── VisitorCookie        creates and validates the visitor id cookie
+
+frontend/src/
+├── main.tsx                 starts both requests, then renders App
+├── App.tsx                  page layout: header with the button, poll list below
+├── api/                     one module per backend feature, plus a shared getJson
+├── components/              UpgradeButton and PollList, each with its CSS Module and test
+├── hooks/useAsync.ts        loading, ready or failed state for a request
+├── styles/global.css        colours and base styles
+└── test/                    test setup and a fake fetch
+```
+
+Each backend class has one job. The experiment logic (`VariantAssigner`, `EventTracker`, `ExperimentService`, `VisitorCookie`) has unit tests that don't need Spring; the controllers have HTTP tests.
+
+## How it works
+
+- **The visitor id:**
+  - The server creates it: a random UUID in an HttpOnly, SameSite=Lax cookie that lasts a year.
+  - The browser never handles the id, so page scripts can't read or change it.
+  - It also avoids `crypto.randomUUID()`, which doesn't exist on plain-HTTP pages, for example when testing on a phone over the local network.
   - The Vite dev server forwards `/api` to the backend, so the browser sees one origin and the cookie works without CORS.
 - **The split:**
   - A new visitor gets a coin flip, `computeIfAbsent(visitorId, …)`, held in a map in memory. After that the visitor always gets the same version, until the server restarts.
   - The random generator is a constructor parameter, so tests can use a seeded one.
 - **The counting:**
-  - The backend keeps a set of visitor ids per version for "saw" and another for "clicked", so a reload or a second click counts once.
+  - For each version, `EventTracker` keeps a set of visitor ids for "saw" and another for "clicked", so a reload or a second click counts once.
   - A click also counts as a view, so "clicked" can never exceed "saw".
-  - Each event says which version the browser showed, and the server counts it only if that matches the visitor's assignment. So an event can never land in a version the visitor didn't see, for example when a brand-new visitor opens two tabs at once and the browser keeps only one of the two cookies.
   - With no visitors, the click rate is 0.
-- **The frontend:**
-  - The version is requested once per page load, in `main.tsx`, before React renders. Inside a component, React's StrictMode would send the request twice in development, and two requests without a cookie would create two visitor ids.
-  - The button sends VIEW once it's on screen and CLICK when pressed.
+- **Which events count:**
+  - Each event says which version the browser showed. `ExperimentService` counts it only if that matches the visitor's assignment.
+  - So an event can never land in a version the visitor didn't see, even when a brand-new visitor opens two tabs at once and the browser keeps only one of the two cookies.
+- **Loading the page:**
+  - `main.tsx` requests the version and the polls once per page load, before React renders.
+  - If the version were requested inside a component, React's StrictMode would send the request twice in development. Two requests without a cookie would create two visitor ids.
+- **The button:**
+  - It sends VIEW once it's on screen and CLICK when pressed.
   - If the version can't be loaded, no button is shown and nothing is recorded. Falling back to A would quietly add visitors to A and skew the split.
-  - The button's space is reserved while it loads, so the page doesn't jump.
-  - The look follows doodle.com: colours, a black 44 px button, Inter if it's installed. No web font is downloaded, which keeps the first load small on a phone.
+  - Its space is reserved while it loads, so the page doesn't jump.
+- **The look** follows doodle.com: its colours, a black 44 px button, and Inter if it's installed. No web font is downloaded, which keeps the first load small on a phone.
 - **Phone and keyboard:**
   - It's a native `<button>` with a visible focus outline, reachable with Tab and pressed with Enter or Space.
   - The "coming soon" message after a click is announced to screen readers.
+  - Text contrast meets WCAG AA.
   - Poll titles get `dir="auto"`, because some are Arabic.
 
 ## Questions
@@ -102,18 +141,23 @@ Subscriptions are much rarer than clicks, so this needs many more visitors, or a
 ## What I left out
 
 - **Persistence:** everything is in memory, as the brief allows. Assignments and events are lost on restart.
+- **Events lost after a restart.** If the server restarts while a page is open, that page's events get a 409 and are dropped silently; the next page load gets a new version.
 - **Rendering the version on the server.** With Next.js, the server could render the button directly, so it wouldn't appear only after the page loads. I kept a client-rendered Vite app, which suits a single screen, and reserve the button's space instead.
 - **Statistics in the results endpoint:** a confidence interval or p-value for the difference, and the sample ratio mismatch check from question 3. Today it returns raw counts and rates.
-- **Events lost after a restart.** If the server restarts while a page is open, that page's events get a 409 and are dropped silently; the next page load gets a new version.
 - **A count of assigned visitors per version,** to compare with "saw" and catch tracking bugs that hit only one version.
 - **Limits on memory:** every request without a cookie creates a new visitor, so a client could grow the in-memory map without limit. Production would need rate limiting, or assignment by hashing the visitor id instead of storing it.
-- **Bot filtering and a production setup:**
+- **A production setup:**
   - a `Secure` cookie flag over HTTPS
   - serving the built frontend from Spring
-  - rate limiting the events endpoint.
-- **End-to-end browser tests in the repo.** The flow was checked in a real browser during development: desktop and phone-sized viewports, keyboard only, and 40 new visitors in a row to confirm each one sends a single version request and that the counts match. The tests in the repo are unit, component and API tests.
+  - a Docker Compose setup, so the app runs without a local Java and Node. Not needed here, since the brief allows one terminal each.
+- **End-to-end browser tests in the repo.** The flow was checked in a real browser during development:
+  - desktop and phone-sized viewports
+  - keyboard only
+  - 40 new visitors in a row, to confirm each sends a single version request and the counts match.
+
+  The tests in the repo are unit, component and API tests.
 
 ## Time and tools
 
-- **Time taken:** _TODO: fill in_
-- **AI tools:** _TODO: describe honestly._ I used Claude Code (Claude Opus 5.5) to understand the brief, design the API and data model, write the code and tests, and draft this README.
+- **Time taken:** Around 2 hours
+- **AI tools:** I used Claude Code to write the code and tests.
