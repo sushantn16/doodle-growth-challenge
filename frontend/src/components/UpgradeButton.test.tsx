@@ -1,8 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Variant } from './api'
-import { mockFetch, sentEvents } from './testing'
+import type { Variant } from '../api/experiment'
+import { mockFetch, sentEvents } from '../test/mockFetch'
 import { UpgradeButton } from './UpgradeButton'
 
 let fetchMock: ReturnType<typeof mockFetch>

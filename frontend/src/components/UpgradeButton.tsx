@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { sendEvent, type Variant } from './api'
+import { sendEvent, type Variant } from '../api/experiment'
 
 /** Version B changes only the text. Everything else about the button stays the same. */
 const LABELS: Record<Variant, string> = {

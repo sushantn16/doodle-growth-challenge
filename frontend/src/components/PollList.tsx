@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchPolls, type Poll } from './api'
+import { fetchPolls, type Poll } from '../api/polls'
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' })
 

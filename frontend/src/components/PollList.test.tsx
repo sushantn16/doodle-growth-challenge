@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { PollList } from './PollList'
-import { mockFetch } from './testing'
+import { mockFetch } from '../test/mockFetch'
 
 afterEach(() => {
   vi.unstubAllGlobals()

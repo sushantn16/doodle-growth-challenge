@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { StrictMode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
-import { fetchVariant } from './api'
-import { mockFetch, requestsTo, sentEvents } from './testing'
+import { fetchVariant } from './api/experiment'
+import { mockFetch, requestsTo, sentEvents } from './test/mockFetch'
 
 afterEach(() => {
   vi.unstubAllGlobals()

@@ -1,6 +1,6 @@
-import type { Variant } from './api'
-import { PollList } from './PollList'
-import { UpgradeButton } from './UpgradeButton'
+import type { Variant } from './api/experiment'
+import { PollList } from './components/PollList'
+import { UpgradeButton } from './components/UpgradeButton'
 
 export default function App({ variant }: { variant: Promise<Variant> }) {
   return (
