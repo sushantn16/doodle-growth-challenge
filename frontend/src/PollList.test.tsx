@@ -27,6 +27,15 @@ describe('PollList', () => {
     expect(within(polls[1]).getByRole('heading')).toHaveTextContent('Board games night')
   })
 
+  it('says so when there are no polls yet', async () => {
+    mockFetch({ '/api/polls': { body: [] } })
+
+    render(<PollList />)
+
+    expect(await screen.findByText('You don’t have any polls yet.')).toBeVisible()
+    expect(screen.queryByRole('list')).not.toBeInTheDocument()
+  })
+
   it('says so when the polls can’t be loaded', async () => {
     mockFetch({ '/api/polls': { status: 500 } })
 

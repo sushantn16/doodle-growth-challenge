@@ -39,6 +39,9 @@ class ExperimentControllerTest {
                 .andExpect(jsonPath("$.variant").isString())
                 .andExpect(cookie().exists(ExperimentController.VISITOR_COOKIE))
                 .andExpect(cookie().httpOnly(ExperimentController.VISITOR_COOKIE, true))
+                .andExpect(cookie().sameSite(ExperimentController.VISITOR_COOKIE, "Lax"))
+                .andExpect(cookie().path(ExperimentController.VISITOR_COOKIE, "/"))
+                .andExpect(cookie().maxAge(ExperimentController.VISITOR_COOKIE, 365 * 24 * 60 * 60))
                 .andExpect(header().string("Cache-Control", "no-store"));
     }
 
