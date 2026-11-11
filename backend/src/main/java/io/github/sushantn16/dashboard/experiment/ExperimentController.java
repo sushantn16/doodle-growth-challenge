@@ -1,5 +1,7 @@
 package io.github.sushantn16.dashboard.experiment;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
@@ -26,7 +28,7 @@ class ExperimentController {
     record Assignment(Variant variant) {}
 
     /** {@code variant} is the version the browser showed. */
-    record Event(EventType type, Variant variant) {}
+    record Event(@NotNull EventType type, @NotNull Variant variant) {}
 
     record Results(List<VariantResult> variants) {}
 
@@ -43,13 +45,14 @@ class ExperimentController {
         return response.body(new Assignment(experiment.assign(id)));
     }
 
-    /** 204 if the event was counted, 409 if the visitor is unknown or was assigned another version. */
+    /**
+     * 204 if the event was counted, 409 if the visitor is unknown or was assigned another version.
+     * A missing or unknown type or variant is a 400, from {@code @Valid}.
+     */
     @PostMapping("/events")
     ResponseEntity<Void> recordEvent(
-            @CookieValue(name = VisitorCookie.NAME, required = false) String visitorId, @RequestBody Event event) {
-        if (event.type() == null || event.variant() == null) {
-            return ResponseEntity.badRequest().build();
-        }
+            @CookieValue(name = VisitorCookie.NAME, required = false) String visitorId,
+            @Valid @RequestBody Event event) {
         boolean counted = experiment.record(visitorId, event.type(), event.variant());
         return counted
                 ? ResponseEntity.noContent().build()
