@@ -125,22 +125,41 @@ class ExperimentControllerTest {
 
     @Test
     void rejectsAnEventFromAVisitorWithoutAnAssignment() throws Exception {
-        postEvent(null, "{\"type\":\"CLICK\"}").andExpect(status().isConflict());
+        postEvent(null, body("CLICK", Variant.A)).andExpect(status().isConflict());
 
         Cookie unknown = new Cookie(ExperimentController.VISITOR_COOKIE, "1b4e28ba-2fa1-11d2-883f-0016d3cca427");
-        postEvent(unknown, "{\"type\":\"VIEW\"}").andExpect(status().isConflict());
+        postEvent(unknown, body("VIEW", Variant.A)).andExpect(status().isConflict());
     }
 
     @Test
-    void rejectsAnEventWithoutAKnownType() throws Exception {
+    void neverCountsAnEventForAVariantTheVisitorWasNotAssigned() throws Exception {
+        MvcResult visit = mockMvc.perform(get("/api/experiment")).andReturn();
+        Variant other = variantOf(visit) == Variant.A ? Variant.B : Variant.A;
+
+        postEvent(visitorCookie(visit), body("CLICK", other)).andExpect(status().isConflict());
+
+        mockMvc.perform(get("/api/experiment/results"))
+                .andExpect(jsonPath("$.variants[0].saw").value(0))
+                .andExpect(jsonPath("$.variants[1].saw").value(0));
+    }
+
+    @Test
+    void rejectsAnEventWithoutAKnownTypeOrVariant() throws Exception {
         Cookie visitor = visitorCookie(mockMvc.perform(get("/api/experiment")).andReturn());
 
         postEvent(visitor, "{}").andExpect(status().isBadRequest());
-        postEvent(visitor, "{\"type\":\"HOVER\"}").andExpect(status().isBadRequest());
+        postEvent(visitor, "{\"type\":\"VIEW\"}").andExpect(status().isBadRequest());
+        postEvent(visitor, "{\"type\":\"HOVER\",\"variant\":\"A\"}").andExpect(status().isBadRequest());
+        // Jackson would otherwise read 1 as the second constant, CLICK.
+        postEvent(visitor, "{\"type\":1,\"variant\":\"A\"}").andExpect(status().isBadRequest());
     }
 
     private void send(MvcResult visit, String type) throws Exception {
-        postEvent(visitorCookie(visit), "{\"type\":\"" + type + "\"}").andExpect(status().isNoContent());
+        postEvent(visitorCookie(visit), body(type, variantOf(visit))).andExpect(status().isNoContent());
+    }
+
+    private static String body(String type, Variant variant) {
+        return "{\"type\":\"" + type + "\",\"variant\":\"" + variant + "\"}";
     }
 
     private ResultActions postEvent(Cookie visitor, String body) throws Exception {

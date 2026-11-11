@@ -39,7 +39,8 @@ class ExperimentController {
         CLICK
     }
 
-    record Event(EventType type) {
+    /** {@code variant} is the version the browser showed. */
+    record Event(EventType type, Variant variant) {
     }
 
     record Results(List<VariantResult> variants) {
@@ -62,23 +63,27 @@ class ExperimentController {
     }
 
     /**
-     * Records that the visitor saw or clicked the button. The variant is looked up on the server, so
-     * a client can't record events for a variant it wasn't shown. 409 if the visitor has no
-     * assignment, for example because the server restarted since the page loaded.
+     * Records that the visitor saw or clicked the button. The event is counted only if the variant
+     * the browser showed is the visitor's assignment, so an event can never land in a variant the
+     * visitor didn't see. That can otherwise happen when two tabs of a brand-new visitor each get
+     * an id and the browser keeps only one cookie.
+     *
+     * <p>409 if the visitor has no assignment (for example, the server restarted since the page
+     * loaded) or a different one.
      */
     @PostMapping("/events")
     ResponseEntity<Void> recordEvent(
             @CookieValue(name = VISITOR_COOKIE, required = false) String visitorId, @RequestBody Event event) {
-        if (event.type() == null) {
+        if (event.type() == null || event.variant() == null) {
             return ResponseEntity.badRequest().build();
         }
-        Optional<Variant> variant = visitorId == null ? Optional.empty() : assigner.find(visitorId);
-        if (variant.isEmpty()) {
+        Optional<Variant> assigned = visitorId == null ? Optional.empty() : assigner.find(visitorId);
+        if (assigned.isEmpty() || assigned.get() != event.variant()) {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
         switch (event.type()) {
-            case VIEW -> tracker.recordView(visitorId, variant.get());
-            case CLICK -> tracker.recordClick(visitorId, variant.get());
+            case VIEW -> tracker.recordView(visitorId, assigned.get());
+            case CLICK -> tracker.recordClick(visitorId, assigned.get());
         }
         return ResponseEntity.noContent().build();
     }
@@ -97,7 +102,11 @@ class ExperimentController {
                 .build();
     }
 
-    /** Only ids this server could have issued are accepted, so a client can't fill memory with junk ids. */
+    /**
+     * Accepts only ids in the form this server issues (a lowercase UUID), so arbitrary cookie values,
+     * such as very long strings, never become map keys. This doesn't limit how many visitors a client
+     * can create: every request without a cookie gets a new id. See "What I left out" in the README.
+     */
     static boolean isValidVisitorId(String visitorId) {
         if (visitorId == null) {
             return false;
