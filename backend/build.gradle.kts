@@ -7,10 +7,10 @@ plugins {
 group = "com.example"
 version = "0.0.1-SNAPSHOT"
 
-java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
-	}
+// Compile for Java 21 with whichever JDK runs Gradle, as long as it's 21 or newer. A toolchain
+// would require exactly JDK 21 to be installed.
+tasks.withType<JavaCompile> {
+	options.release = 21
 }
 
 repositories {
